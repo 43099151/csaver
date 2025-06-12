@@ -2,13 +2,7 @@
 FROM jiangrui1994/cloudsaver:latest
 
 # 设置镜像的维护者信息
-LABEL maintainer="Your Name <your.email@example.com>"
-
-# --- 设置环境变量 ---
-# 定义此环境变量是为了在脚本中使用，但Go是通过apk安装的
-ENV GO_VERSION=1.24.4
-ENV GO_ARCH=amd64
-ENV PATH="/usr/local/go/bin:${PATH}"
+LABEL maintainer="Ganzihai"
 
 # --- 步骤 1: 设置时区和更新包索引 ---
 RUN apk update && \
@@ -25,17 +19,17 @@ RUN apk add --no-cache \
     # 版本控制和编译工具
     git build-base python3-dev
 
-# --- 步骤 3: 启用 Corepack 来管理 pnpm ---
+# --- 步骤 3: 启用 Corepack 来管理 pnpm (Node.js 包管理器) ---
 RUN corepack enable
 
-# --- 步骤 4: 在构建阶段安装所有 Python 依赖 ---
+# --- 步骤 4: 在构建阶段安装所有已知的 Python 依赖 ---
 RUN \
     # 创建一个临时目录用于构建，避免污染最终目录
     mkdir -p /tmp/pip_build && \
     cd /tmp/pip_build && \
     # 克隆项目以获取 requirements.txt
     git clone https://github.com/Cp0204/quark-auto-save.git . && \
-    # 安装所有已知的 Python 依赖
+    # 安装所有已知依赖 (来自核心脚本和可选的Web界面)
     pip install --no-cache-dir --break-system-packages \
         -r requirements.txt \
         flask \
@@ -49,12 +43,13 @@ RUN rm -rf /var/cache/apk/*
 
 # --- 准备服务目录 ---
 # 为后续的手动部署创建空目录
-RUN mkdir -p /app/cloud189 /app/quark
+RUN mkdir -p /app/cloud189 /app/quark /app/frpc
 
-# --- 准备 Supervisor 配置模板 ---
-# 将配置模板复制到镜像中，以便入口脚本在首次运行时使用
+# --- 准备 Supervisor 配置 ---
+# 将主配置文件直接复制到标准路径
+COPY supervisord.conf /etc/supervisord.conf
+# 将服务配置文件模板复制到镜像中，以便入口脚本在首次运行时使用
 RUN mkdir -p /etc/supervisor_templates/
-COPY supervisord.conf /etc/supervisor_templates/
 COPY services.ini /etc/supervisor_templates/
 
 # --- 配置 SSH ---
@@ -76,4 +71,4 @@ EXPOSE 8008 22
 # 使用我们自己的入口脚本来启动容器
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 # 将 Supervisor 作为主命令传递给入口脚本
-CMD ["/usr/bin/supervisord", "-c", "/app/supervisord/supervisord.conf"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
