@@ -2,23 +2,30 @@
 # 使用最新的 Go 1.24 Alpine 镜像，确保编译环境版本正确
 FROM golang:1.24-alpine AS golang_builder
 
-# 安装 C 语言编译环境和 SQLite 开发库，这是 Go 项目的编译依赖
+# 安装编译所需的 C 语言环境、SQLite 开发库和 Git
 RUN apk add --no-cache git build-base sqlite-dev
 
-# 设置工作目录
+# 设置一个基础工作目录
 WORKDIR /src
 
-# 克隆项目。注意，这次没有最后的 '.', 会创建一个新目录
-RUN git clone https://github.com/1307super/cloud189-auto-save.git
-
-# --- 关键修复：进入克隆下来的项目目录 ---
-WORKDIR /src/cloud189-auto-save
-
-# 现在在正确的目录里，执行 go mod tidy
-RUN go mod tidy
-
-# 编译 Go 项目。
-RUN go build -ldflags '-s -w' -o /cloud189-auto-save
+# --- 关键修复：使用单一的、连续的 RUN 指令来完成所有编译步骤 ---
+RUN \
+    # 1. 克隆项目到一个名为 cloud189-auto-save 的目录中
+    git clone https://github.com/1307super/cloud189-auto-save.git && \
+    \
+    # 2. 使用 cd 命令，明确进入克隆下来的项目目录
+    cd cloud189-auto-save && \
+    \
+    # 3. (可选但推荐的调试步骤) 列出当前目录内容，确保能看到 go.mod
+    echo "--- Listing files in current directory ---" && \
+    ls -la && \
+    echo "----------------------------------------" && \
+    \
+    # 4. 在确认无误的目录下，执行 go mod tidy
+    go mod tidy && \
+    \
+    # 5. 最后，执行编译
+    go build -ldflags '-s -w' -o /app-binary
 
 
 # --- 阶段二：构建最终的多服务镜像 ---
@@ -60,7 +67,8 @@ RUN \
 
 # --- 准备服务和配置 ---
 RUN mkdir -p /app/cloud189
-COPY --from=golang_builder /src/cloud189-auto-save/cloud189-auto-save /app/cloud189/
+# --- 注意：这里的源路径也需要更新，以匹配第一阶段的输出路径 ---
+COPY --from=golang_builder /src/cloud189-auto-save/app-binary /app/cloud189/cloud189-auto-save
 
 # --- 准备 Supervisor 配置模板 ---
 RUN mkdir -p /etc/supervisor_templates/
