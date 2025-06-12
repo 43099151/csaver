@@ -4,6 +4,7 @@
 set -e
 
 # --- 1. 初始化我们自己的服务 ---
+
 # 从环境变量设置 SSH 密码
 DEFAULT_PASS="admin123"
 ROOT_PASSWORD="${SSH_PASSWORD:-$DEFAULT_PASS}"
@@ -19,7 +20,6 @@ fi
 SUPERVISOR_DIR="/app/supervisord"
 if [ ! -d "$SUPERVISOR_DIR" ]; then
     mkdir -p "$SUPERVISOR_DIR"
-    # 注意：现在只复制 services.ini 作为用户的模板
     cp /etc/supervisor_templates/services.ini "$SUPERVISOR_DIR/"
 fi
 
