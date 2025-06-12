@@ -1,22 +1,4 @@
-# --- 阶段一：Go 语言项目构建器 ---
-# 关键修复：使用项目 go.mod 文件中指定的 go 1.21 版本
-FROM golang:1.21-alpine AS golang_builder
-
-# 关键修复：只安装 git 和基础 C 编译器，不再需要 sqlite-dev
-RUN apk add --no-cache git build-base
-
-# 设置工作目录
-WORKDIR /src
-
-# 将项目克隆到当前目录
-RUN git clone https://github.com/1307super/cloud189-auto-save.git .
-
-# 关键修复：完全移除 `go mod tidy` 指令。
-# 直接执行编译。Go 编译器会读取 go.mod 并使用 vender 目录中的代码。
-RUN go build -ldflags '-s -w' -o /app-binary
-
-
-# --- 阶段二：构建最终的多服务镜像 ---
+# --- 构建最终的多服务镜像 (不再需要第一阶段) ---
 FROM jiangrui1994/cloudsaver:latest
 
 # 设置镜像的维护者信息
@@ -46,9 +28,8 @@ RUN \
     rm -rf /var/cache/apk/*
 
 # --- 准备服务和配置 ---
+# 只创建目录，不再复制编译好的文件
 RUN mkdir -p /app/cloud189
-# --- 从第一阶段复制编译好的二进制文件 ---
-COPY --from=golang_builder /src/app-binary /app/cloud189/cloud189-auto-save
 
 # --- 准备 Supervisor 配置模板 ---
 RUN mkdir -p /etc/supervisor_templates/
