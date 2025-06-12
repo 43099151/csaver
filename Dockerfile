@@ -15,7 +15,7 @@ RUN apk update && \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone
 
-# --- 步骤 2: 安装所有基础工具和运行环境 ---
+# --- 步骤 2: 安装我们新增服务所需的工具 ---
 RUN apk add --no-cache \
     openssh sudo curl wget busybox-suid nano tar gzip unzip sshpass \
     python3 py3-pip supervisor
@@ -34,29 +34,26 @@ RUN rm -rf /var/cache/apk/*
 # --- 准备服务目录 ---
 RUN mkdir -p /app/cloud189 /app/quark
 
-# --- 准备 Supervisor 配置模板 ---
+# --- 准备我们自己的 Supervisor 配置模板 ---
 RUN mkdir -p /etc/supervisor_templates/
 COPY supervisord.conf /etc/supervisor_templates/
+# 注意：services.ini 现在只包含我们自己的服务
 COPY services.ini /etc/supervisor_templates/
 
 # --- 配置 SSH ---
 RUN mkdir -p /var/run/sshd && \
-    # --- 关键修复：强制启用密码登录 ---
-    # 使用 `echo` 将配置追加到文件末尾，确保它们总是生效
-    # 允许 root 用户登录
     echo "PermitRootLogin yes" >> /etc/ssh/sshd_config && \
-    # 明确启用密码验证
     echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config && \
-    # (可选但推荐) 关闭 UsePAM 简化认证流程，避免潜在问题
     echo "UsePAM no" >> /etc/ssh/sshd_config
 
-# --- 配置入口脚本 ---
+# --- 配置我们自己的入口脚本 ---
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# --- 暴露端口 ---
+# --- 暴露端口 (根据原始镜像的文档) ---
 EXPOSE 8008 22
 
 # --- 定义容器启动命令 ---
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# CMD 会作为参数传递给我们自己的入口脚本
 CMD ["/usr/bin/supervisord", "-c", "/app/supervisord/supervisord.conf"]
