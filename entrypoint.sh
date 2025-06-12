@@ -34,28 +34,6 @@ if [ ! -f "$SERVICES_CONFIG_FILE" ]; then
     cp "${TEMPLATE_DIR}/services.ini" "$SERVICES_CONFIG_FILE"
 fi
 
-# --- 3. 初始化应用配置 ---
-# Quark 保存助手配置检查
-QUARK_CONFIG_PATH="/app/quark/Config"
-QUARK_CONFIG_FILE="${QUARK_CONFIG_PATH}/config.ini"
-QUARK_TEMPLATE_FILE="/app/quark/config.ini.templete"
-
-if [ ! -d "$QUARK_CONFIG_PATH" ]; then
-    mkdir -p "$QUARK_CONFIG_PATH"
-fi
-if [ ! -f "$QUARK_CONFIG_FILE" ]; then
-    echo "Quark 配置文件不存在，正在从模板创建..."
-    cp "$QUARK_TEMPLATE_FILE" "$QUARK_CONFIG_FILE"
-fi
-
-# 天翼云盘配置检查
-CLOUD189_CONFIG_FILE="/app/cloud189/config.json"
-if [ ! -f "$CLOUD189_CONFIG_FILE" ]; then
-    echo "注意：天翼云盘配置文件 ${CLOUD189_CONFIG_FILE} 不存在。请在挂载的目录下手动创建并配置它。"
-fi
-
-echo "入口脚本：初始化检查完成。"
-
 # --- 4. 启动主进程 ---
 # 执行 Docker CMD 中定义的命令 (即启动 supervisord)
 exec "$@"
