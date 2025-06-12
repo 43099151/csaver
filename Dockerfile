@@ -1,9 +1,10 @@
 # --- 阶段一：Go 语言项目构建器 ---
-# 关键修复：将 Go 的版本从 1.22 升级到 1.24，以解决构建兼容性问题
+# 使用最新的 Go 1.24 Alpine 镜像
 FROM golang:1.24-alpine AS golang_builder
 
-# 在构建环境中安装 git
-RUN apk add --no-cache git
+# --- 关键修复：安装 C 语言编译环境和 SQLite 开发库 ---
+# 这是解决 `go mod tidy` 和 `go build` 失败的根本原因
+RUN apk add --no-cache git build-base sqlite-dev
 
 # 设置工作目录
 WORKDIR /src
@@ -14,9 +15,9 @@ RUN git clone https://github.com/1307super/cloud189-auto-save.git .
 # 最佳实践：在构建前处理 Go Modules 依赖
 RUN go mod tidy
 
-# 编译 Go 项目。
-# CGO_ENABLED=0 和 -ldflags '-s -w' 是为了生成静态链接、体积更小的二进制文件
-RUN CGO_ENABLED=0 go build -ldflags '-s -w' -o /cloud189-auto-save
+# 编译 Go 项目。现在因为安装了CGO依赖，它可以成功编译
+# 注意：我们不再需要 CGO_ENABLED=0，因为我们就是要用CGO
+RUN go build -ldflags '-s -w' -o /cloud189-auto-save
 
 
 # --- 阶段二：构建最终的多服务镜像 ---
@@ -25,6 +26,11 @@ FROM jiangrui1994/cloudsaver:latest
 
 # 设置镜像的维护者信息（可选）
 LABEL maintainer="Your Name <your.email@example.com>"
+
+# --- 关键更新：设置时区为上海 ---
+RUN apk add --no-cache tzdata && \
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone
 
 # --- 安装所有需要的工具和语言环境 ---
 RUN apk add --no-cache \
