@@ -4,8 +4,7 @@
 set -e
 
 # --- 1. 初始化我们自己的服务 ---
-
-# 从环境变量设置 SSH 密码，如果未提供则使用默认值
+# 从环境变量设置 SSH 密码
 DEFAULT_PASS="admin123"
 ROOT_PASSWORD="${SSH_PASSWORD:-$DEFAULT_PASS}"
 echo "root:${ROOT_PASSWORD}" | chpasswd
@@ -16,11 +15,12 @@ if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
     ssh-keygen -A
 fi
 
-# 如果用户的 Supervisor 配置目录不存在，则从模板创建 (仅首次运行)
+# 如果用户的 Supervisor 服务文件目录不存在，则从模板创建 (仅首次运行)
 SUPERVISOR_DIR="/app/supervisord"
 if [ ! -d "$SUPERVISOR_DIR" ]; then
     mkdir -p "$SUPERVISOR_DIR"
-    cp /etc/supervisor_templates/* "$SUPERVISOR_DIR/"
+    # 注意：现在只复制 services.ini 作为用户的模板
+    cp /etc/supervisor_templates/services.ini "$SUPERVISOR_DIR/"
 fi
 
 # --- 2. 在后台启动原始镜像的服务 ---
