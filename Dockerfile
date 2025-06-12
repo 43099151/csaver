@@ -4,13 +4,11 @@ FROM jiangrui1994/cloudsaver:latest
 # 设置镜像的维护者信息
 LABEL maintainer="Your Name <your.email@example.com>"
 
-# --- 设置环境变量 (包括 pnpm) ---
+# --- 设置环境变量 ---
 ENV GO_VERSION=1.24.4
 ENV GO_ARCH=amd64
-# 设置 pnpm 的安装目录
-ENV PNPM_HOME="/usr/local/pnpm"
-# 将 Go 和 pnpm 的路径加入系统 PATH
-ENV PATH="/usr/local/go/bin:${PNPM_HOME}:${PATH}"
+# 将 Go 的路径加入系统 PATH
+ENV PATH="/usr/local/go/bin:${PATH}"
 
 # --- 步骤 1: 设置时区和更新包索引 ---
 RUN apk update && \
@@ -19,7 +17,7 @@ RUN apk update && \
     echo "Asia/Shanghai" > /etc/timezone
 
 # --- 步骤 2: 安装所有基础工具和运行环境 ---
-# 注意：这里不再需要任何 build-base 或 -dev 包
+# 注意：我们只需要 curl 来下载 Go，之后可以清理掉
 RUN apk add --no-cache \
     openssh sudo curl wget busybox-suid nano tar gzip unzip sshpass \
     python3 py3-pip supervisor
@@ -29,15 +27,14 @@ RUN wget "https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz" -O /tmp/go.
     tar -C /usr/local -xzf /tmp/go.tar.gz && \
     rm /tmp/go.tar.gz
 
-# --- 步骤 4: 安装 pnpm ---
-# 使用官方推荐的脚本进行安装，curl 是必需的
-RUN curl -fsSL https://get.pnpm.io/install.sh | sh -
+# --- 步骤 4: 启用 Corepack 来管理 pnpm (推荐的最佳实践) ---
+# 这条命令会创建 pnpm 的垫片 (shim)，使其立即可用
+RUN corepack enable
 
 # --- 步骤 5: 清理 APK 缓存 ---
 RUN rm -rf /var/cache/apk/*
 
 # --- 准备服务目录 ---
-# 为您后续的手动部署创建好空目录
 RUN mkdir -p /app/cloud189 /app/quark
 
 # --- 准备 Supervisor 配置模板 ---
