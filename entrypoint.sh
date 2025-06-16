@@ -25,7 +25,7 @@ fi
 
 # 添加 cron 任务
 CRON_FILE="/etc/crontabs/root"
-CRON_JOB="16 4 * * * /bin/sh /var/www/html/backup.sh"
+CRON_JOB="16 4 * * * /bin/sh /app/backup.sh"
 # 确保 crontab 文件存在且可写，如果不存在则创建
 if [ ! -f "$CRON_FILE" ]; then
     touch "$CRON_FILE"
