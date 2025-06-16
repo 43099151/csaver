@@ -23,6 +23,22 @@ if [ ! -d "$SUPERVISOR_DIR" ]; then
     cp /etc/supervisor_templates/services.ini "$SUPERVISOR_DIR/"
 fi
 
+# 添加 cron 任务
+CRON_FILE="/etc/crontabs/root"
+CRON_JOB="16 4 * * * /bin/sh /var/www/html/backup.sh"
+# 确保 crontab 文件存在且可写，如果不存在则创建
+if [ ! -f "$CRON_FILE" ]; then
+    touch "$CRON_FILE"
+    chmod 600 "$CRON_FILE"
+fi
+# 检查任务是否已存在，避免重复添加
+if ! grep -qF "$CRON_JOB" "$CRON_FILE"; then
+    echo "$CRON_JOB" >> "$CRON_FILE"
+    echo "Cron job for backup.sh has been set."
+else
+    echo "Cron job for backup.sh already exists."
+fi
+
 # --- 2. 在后台启动原始镜像的服务 ---
 sh /app/docker-entrypoint.sh &
 
