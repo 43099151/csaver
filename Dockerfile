@@ -13,7 +13,7 @@ RUN apk update && \
 # --- 步骤 2: 安装所有基础工具、语言环境和编译依赖 ---
 RUN apk add --no-cache \
     # 基础工具
-    openssh sudo curl wget busybox-suid nano tar gzip unzip sshpass \
+    openssh sudo curl wget busybox-suid nano tar gzip unzip bash sshpass \
     # 语言和包管理器
     python3 py3-pip supervisor go \
     # 版本控制和编译工具
